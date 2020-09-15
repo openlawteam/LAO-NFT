@@ -4,12 +4,14 @@ contract GAMMA { // Γ - lo-code, lo-cost NFT
     uint256 public totalSupply;
     string public name = "✨";
     string public symbol = "GAMMA";
+    
     mapping(address => uint256) public balanceOf;
     mapping(uint256 => address) public getApproved;
     mapping(uint256 => address) public ownerOf;
     mapping(uint256 => string) public tokenURI;
     mapping(bytes4 => bool) public supportsInterface; // eip-165 
     mapping(address => mapping(address => bool)) public isApprovedForAll;
+    
     event Approval(address indexed approver, address indexed spender, uint256 indexed tokenId);
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
