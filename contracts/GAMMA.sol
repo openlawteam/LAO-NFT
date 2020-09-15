@@ -13,7 +13,7 @@ contract GAMMA { // Γ - lo-code, lo-cost NFT
     event Approval(address indexed approver, address indexed spender, uint256 indexed tokenId);
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
-
+    
     constructor () public {
         balanceOf[msg.sender] = 1;
         totalSupply = 1;
@@ -23,7 +23,7 @@ contract GAMMA { // Γ - lo-code, lo-cost NFT
         supportsInterface[0x5b5e139f] = true; // METADATA
         emit Transfer(address(0), msg.sender, 1);
     }
-
+    
     function approve(address spender, uint256 tokenId) external returns (bool) {
         address tokenOwner = ownerOf[tokenId];
         require(msg.sender == tokenOwner || isApprovedForAll[tokenOwner][msg.sender], "!owner/operator");
@@ -31,12 +31,10 @@ contract GAMMA { // Γ - lo-code, lo-cost NFT
         emit Approval(msg.sender, spender, tokenId); 
         return true;
     }
-    
     function setApprovalForAll(address operator, bool approved) external {
         isApprovedForAll[msg.sender][operator] = approved;
         emit ApprovalForAll(msg.sender, operator, approved);
     }
-
     function mint(address to, string calldata _tokenURI) external { // "open mint" - anyone can call new NFT to anyone
         totalSupply += 1;
         balanceOf[to] += 1;
@@ -45,7 +43,6 @@ contract GAMMA { // Γ - lo-code, lo-cost NFT
         tokenURI[tokenId] = _tokenURI;
         emit Transfer(address(0), to, tokenId); 
     }
-    
     function _transfer(address from, address to, uint256 tokenId) internal {
         balanceOf[from] -= 1; 
         balanceOf[to] += 1; 
@@ -53,13 +50,11 @@ contract GAMMA { // Γ - lo-code, lo-cost NFT
         ownerOf[tokenId] = to;
         emit Transfer(from, to, tokenId); 
     }
-    
     function transfer(address to, uint256 tokenId) external returns (bool) {
         require(msg.sender == ownerOf[tokenId], "!owner");
         _transfer(msg.sender, to, tokenId);
         return true;
     }
-    
     function transferFrom(address from, address to, uint256 tokenId) external returns (bool) {
         address tokenOwner = ownerOf[tokenId];
         require(msg.sender == tokenOwner || getApproved[tokenId] == msg.sender || isApprovedForAll[tokenOwner][msg.sender], "!owner/spender/operator");
