@@ -1,6 +1,6 @@
 pragma solidity 0.5.17;
 
-contract GAMMA { // Γ - lo-code, lo-cost NFT
+contract GAMMA { // Γ - lo-code/cost NFT
     uint256 public totalSupply;
     string public name = "✨";
     string public symbol = "GAMMA";
