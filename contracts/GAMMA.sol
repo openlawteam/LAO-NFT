@@ -51,6 +51,15 @@ contract GAMMA { // Γ - lo-code, lo-cost NFT
         emit Transfer(msg.sender, address(0), tokenId);
     }
     
+    function mint(address to, string calldata _tokenURI) external { // "open mint" - anyone can call new NFT to anyone
+        totalSupply += 1;
+        balanceOf[to] += 1;
+        uint256 tokenId = totalSupply;
+        ownerOf[tokenId] = to;
+        tokenURI[tokenId] = _tokenURI;
+        emit Transfer(address(0), to, tokenId); 
+    }
+    
     function _transfer(address from, address to, uint256 tokenId) internal {
         balanceOf[from] -= 1; 
         balanceOf[to] += 1; 
@@ -72,14 +81,5 @@ contract GAMMA { // Γ - lo-code, lo-cost NFT
         ownerOf[tokenId] = to;
         _transfer(from, to, tokenId);
         return true;
-    }
-    
-    function mint(address to, string calldata _tokenURI) external { // "open mint" - anyone can call new NFT to anyone
-        totalSupply += 1;
-        balanceOf[to] += 1;
-        uint256 tokenId = totalSupply;
-        ownerOf[tokenId] = to;
-        tokenURI[tokenId] = _tokenURI;
-        emit Transfer(address(0), to, tokenId); 
     }
 }
