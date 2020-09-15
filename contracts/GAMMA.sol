@@ -38,8 +38,8 @@ contract GAMMA { // Γ - lo-code, lo-cost NFT
     }
     
     function mint(string calldata _tokenURI) external { 
-        totalSupply += 1;
-        balanceOf[msg.sender] += 1;
+        balanceOf[msg.sender]++;
+        totalSupply++;
         uint256 tokenId = totalSupply;
         ownerOf[tokenId] = msg.sender;
         tokenURI[tokenId] = _tokenURI;
@@ -47,8 +47,8 @@ contract GAMMA { // Γ - lo-code, lo-cost NFT
     }
     
     function _transfer(address from, address to, uint256 tokenId) internal {
-        balanceOf[from] -= 1; 
-        balanceOf[to] += 1; 
+        balanceOf[from]++; 
+        balanceOf[to]++; 
         getApproved[tokenId] = address(0);
         ownerOf[tokenId] = to;
         emit Transfer(from, to, tokenId); 
