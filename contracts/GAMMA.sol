@@ -26,12 +26,11 @@ contract GAMMA { // Γ - lo-code/cost NFT
         emit Transfer(address(0), msg.sender, 1);
     }
     
-    function approve(address spender, uint256 tokenId) external returns (bool) {
+    function approve(address spender, uint256 tokenId) external {
         address tokenOwner = ownerOf[tokenId];
         require(msg.sender == tokenOwner || isApprovedForAll[tokenOwner][msg.sender], "!owner/operator");
         getApproved[tokenId] = spender;
         emit Approval(msg.sender, spender, tokenId); 
-        return true;
     }
     
     function setApprovalForAll(address operator, bool approved) external {
@@ -56,18 +55,16 @@ contract GAMMA { // Γ - lo-code/cost NFT
         emit Transfer(from, to, tokenId); 
     }
     
-    function transfer(address to, uint256 tokenId) external returns (bool) {
+    function transfer(address to, uint256 tokenId) external {
         require(msg.sender == ownerOf[tokenId], "!owner");
         _transfer(msg.sender, to, tokenId);
-        return true;
     }
     
-    function transferFrom(address from, address to, uint256 tokenId) external returns (bool) {
+    function transferFrom(address from, address to, uint256 tokenId) external {
         address tokenOwner = ownerOf[tokenId];
         require(msg.sender == tokenOwner || getApproved[tokenId] == msg.sender || isApprovedForAll[tokenOwner][msg.sender], "!owner/spender/operator");
         getApproved[tokenId] = address(0);
         ownerOf[tokenId] = to;
         _transfer(from, to, tokenId);
-        return true;
     }
 }
