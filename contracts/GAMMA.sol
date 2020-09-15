@@ -47,7 +47,7 @@ contract GAMMA { // Γ - lo-code, lo-cost NFT
     }
     
     function _transfer(address from, address to, uint256 tokenId) internal {
-        balanceOf[from]++; 
+        balanceOf[from]--; 
         balanceOf[to]++; 
         getApproved[tokenId] = address(0);
         ownerOf[tokenId] = to;
