@@ -76,7 +76,7 @@ contract Gallery {
 
     function balanceResolution(address from, address to, uint256 tokenId) external {
         require(msg.sender == resolver, "!resolver");
-        require(sender == ownerOf[tokenId], "!owner");
+        require(from == ownerOf[tokenId], "!owner");
         
         _transfer(from, to, tokenId); 
     }
@@ -101,7 +101,7 @@ contract Gallery {
     }
     
     function _transfer(address from, address to, uint256 tokenId) internal {
-        balanceOf[sender] -= 1; 
+        balanceOf[from] -= 1; 
         balanceOf[to] += 1; 
         getApproved[tokenId] = address(0);
         ownerOf[tokenId] = to;
@@ -141,14 +141,14 @@ contract Gallery {
         return true;
     }
     
-    function mint(address to, string calldata tokenURI) external { // "open mint" - anyone can call new NFT to anyone
+    function mint(address to, string calldata _tokenURI) external { // "open mint" - anyone can call new NFT to anyone
         totalSupply += 1;
         require(totalSupply <= totalSupplyCap, "capped");
         
         balanceOf[to] += 1;
-        tokenId = totalSupply;
+        uint256 tokenId = totalSupply;
         ownerOf[tokenId] = to;
-        tokenURI[tokenId] = tokenURI;
+        tokenURI[tokenId] = _tokenURI;
         
         emit Transfer(address(0), to, tokenId); 
     }
