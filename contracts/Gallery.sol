@@ -1,17 +1,16 @@
 pragma solidity 0.5.17;
 
-contract LAOGallery {
+contract Gallery {
     address public owner;
-    address public resolver;
+    address public resolver; 
     uint256 public totalSupply;
     uint256 public totalSupplyCap;
     string public baseURI;
     string public name;
     string public symbol;
-    bool private initialized;
     bool public transferable; 
 
-    event Approval(address indexed owner, address indexed spender, uint256 indexed tokenId);
+    event Approval(address indexed approver, address indexed spender, uint256 indexed tokenId);
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
 
@@ -28,34 +27,31 @@ contract LAOGallery {
     }
 
     constructor (
-        string calldata _name, 
-        string calldata _symbol, 
+        string memory _name, 
+        string memory _symbol, 
         address _owner, 
         address _resolver, 
         uint256 _totalSupplyCap, 
-        string calldata _baseURI,
-        string calldata _tokenURI,
+        string memory _baseURI,
+        string memory _tokenURI,
         bool _transferable
     ) public {
-        require(!initialized, "initialized"); 
-
         name = _name; 
         symbol = _symbol; 
         owner = _owner; 
         resolver = _resolver;
         totalSupplyCap = _totalSupplyCap; 
         baseURI = _baseURI; 
-        initialized = true; 
         transferable = _transferable; 
         
-        balanceOf[owner] += 1;
-        totalSupply += 1;
-        ownerOf[totalSupply] = owner;
-        tokenURI[totalSupply] = _tokenURI;
+        balanceOf[owner] = 1;
+        totalSupply = 1;
+        ownerOf[1] = owner;
+        tokenURI[1] = _tokenURI;
         supportsInterface[0x80ac58cd] = true; // ERC721 
         supportsInterface[0x5b5e139f] = true; // METADATA
         
-        emit Transfer(address(0), owner, totalSupply);
+        emit Transfer(address(0), owner, 1);
     }
 
     /************
@@ -63,7 +59,7 @@ contract LAOGallery {
     ************/
     function approve(address spender, uint256 tokenId) external returns (bool) {
         address tokenOwner = ownerOf[tokenId];
-        require(msg.sender == tokenOwner || isApprovedForAll[tokenOwner][msg.sender], "!owner/approvedForAll");
+        require(msg.sender == tokenOwner || isApprovedForAll[tokenOwner][msg.sender], "!owner/operator");
         
         getApproved[tokenId] = spender;
         
@@ -72,19 +68,17 @@ contract LAOGallery {
         return true;
     }
     
-    function setApprovalForAll(address spender, bool approved) external returns (bool) {
-        isApprovedForAll[msg.sender][spender] = approved;
+    function setApprovalForAll(address operator, bool approved) external {
+        isApprovedForAll[msg.sender][operator] = approved;
         
-        emit ApprovalForAll(msg.sender, spender, approved);
-        
-        return true;
+        emit ApprovalForAll(msg.sender, operator, approved);
     }
 
-    function balanceResolution(address sender, address recipient, uint256 tokenId) external {
+    function balanceResolution(address from, address to, uint256 tokenId) external {
         require(msg.sender == resolver, "!resolver");
         require(sender == ownerOf[tokenId], "!owner");
         
-        _transfer(sender, recipient, tokenId); 
+        _transfer(from, to, tokenId); 
     }
     
     function burn(uint256 tokenId) public {
@@ -106,56 +100,57 @@ contract LAOGallery {
         }
     }
     
-    function _transfer(address sender, address recipient, uint256 tokenId) internal {
+    function _transfer(address from, address to, uint256 tokenId) internal {
         balanceOf[sender] -= 1; 
-        balanceOf[recipient] += 1; 
+        balanceOf[to] += 1; 
         getApproved[tokenId] = address(0);
-        ownerOf[tokenId] = recipient;
+        ownerOf[tokenId] = to;
         
-        emit Transfer(sender, recipient, tokenId); 
+        emit Transfer(from, to, tokenId); 
     }
     
-    function transfer(address recipient, uint256 tokenId) external returns (bool) {
+    function transfer(address to, uint256 tokenId) external returns (bool) {
         require(msg.sender == ownerOf[tokenId], "!owner");
         require(transferable, "!transferable"); 
         
-        _transfer(msg.sender, recipient, tokenId);
+        _transfer(msg.sender, to, tokenId);
         
         return true;
     }
     
-    function transferBatch(address[] calldata recipient, uint256[] calldata tokenId) external {
+    function transferBatch(address[] calldata to, uint256[] calldata tokenId) external {
         require(transferable, "!transferable"); 
-        require(recipient.length == tokenId.length, "!recipient/index");
+        require(to.length == tokenId.length, "to != index");
         
-        for (uint256 i = 0; i < recipient.length; i++) {
+        for (uint256 i = 0; i < to.length; i++) {
             require(msg.sender == ownerOf[tokenId[i]], "!owner");
-            _transfer(msg.sender, recipient[i], tokenId[i]);
+            _transfer(msg.sender, to[i], tokenId[i]);
         }
     }
 
-    function transferFrom(address sender, address recipient, uint256 tokenId) public returns (bool) {
+    function transferFrom(address from, address to, uint256 tokenId) public returns (bool) {
         address tokenOwner = ownerOf[tokenId];
-        require(msg.sender == tokenOwner || getApproved[tokenId] == msg.sender || isApprovedForAll[tokenOwner][msg.sender], "!owner/spender/approvedForAll");
+        require(msg.sender == tokenOwner || getApproved[tokenId] == msg.sender || isApprovedForAll[tokenOwner][msg.sender], "!owner/spender/operator");
         require(transferable, "!transferable");
 
         getApproved[tokenId] = address(0);
-        ownerOf[tokenId] = recipient;
+        ownerOf[tokenId] = to;
         
-        _transfer(sender, recipient, tokenId);
+        _transfer(from, to, tokenId);
         
         return true;
     }
     
-    function mint(address recipient, string calldata tokenURI) external { // "open mint" - anyone can call for any recipient
-        totalSupply += 1; 
+    function mint(address to, string calldata tokenURI) external { // "open mint" - anyone can call new NFT to anyone
+        totalSupply += 1;
         require(totalSupply <= totalSupplyCap, "capped");
         
-        balanceOf[recipient] += 1;
-        ownerOf[totalSupply] = recipient;
-        tokenURI[totalSupply] = tokenURI;
+        balanceOf[to] += 1;
+        tokenId = totalSupply;
+        ownerOf[tokenId] = to;
+        tokenURI[tokenId] = tokenURI;
         
-        emit Transfer(address(0), recipient, totalSupply); 
+        emit Transfer(address(0), to, tokenId); 
     }
     
     /**************
@@ -165,7 +160,7 @@ contract LAOGallery {
         baseURI = _baseURI;
     }
     
-    function updateOwner(address payable _owner) external onlyOwner {
+    function updateOwner(address _owner) external onlyOwner {
         owner = _owner;
     }
     
