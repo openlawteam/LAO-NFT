@@ -1,8 +1,8 @@
 pragma solidity 0.5.17;
 
 contract GAMMA { // Γ - mv-NFT-mkt
+    uint256 public constant GAMMA_MAX = 5772156649015328606065120900824024310421;
     uint256 public totalSupply;
-    uint256 public constant GAMMA_MAX = 5772156649015328606065120900824024310421; 
     string public name = "✨";
     string public symbol = "GAMMA";
     
@@ -27,7 +27,7 @@ contract GAMMA { // Γ - mv-NFT-mkt
         balanceOf[msg.sender] = 1;
         totalSupply = 1;
         ownerOf[1] = msg.sender;
-        tokenURI[1] = "Γ";
+        tokenURI[1] = "γ";
         supportsInterface[0x80ac58cd] = true; // ERC721 
         supportsInterface[0x5b5e139f] = true; // METADATA
         emit Transfer(address(0), msg.sender, 1);
@@ -38,11 +38,6 @@ contract GAMMA { // Γ - mv-NFT-mkt
         require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "!owner/operator");
         getApproved[tokenId] = spender;
         emit Approval(msg.sender, spender, tokenId); 
-    }
-    
-    function setApprovalForAll(address operator, bool approved) external {
-        isApprovedForAll[msg.sender][operator] = approved;
-        emit ApprovalForAll(msg.sender, operator, approved);
     }
     
     function mint(string calldata _tokenURI) external { 
@@ -57,12 +52,16 @@ contract GAMMA { // Γ - mv-NFT-mkt
     
     function purchase(uint256 tokenId) payable external {
         require(msg.value == sale[tokenId].ethPrice, "!ethPrice");
-        require(sale[tokenId].forSale == true, "!forSale");
+        require(sale[tokenId].forSale, "!forSale");
         address owner = ownerOf[tokenId];
         (bool success, ) = owner.call.value(msg.value)("");
         require(success, "!transfer");
-        sale[tokenId].forSale = false;
         _transfer(owner, msg.sender, tokenId);
+    }
+    
+    function setApprovalForAll(address operator, bool approved) external {
+        isApprovedForAll[msg.sender][operator] = approved;
+        emit ApprovalForAll(msg.sender, operator, approved);
     }
     
     function _transfer(address from, address to, uint256 tokenId) internal {
@@ -70,6 +69,7 @@ contract GAMMA { // Γ - mv-NFT-mkt
         balanceOf[to]++; 
         getApproved[tokenId] = address(0);
         ownerOf[tokenId] = to;
+        sale[tokenId].forSale = false;
         emit Transfer(from, to, tokenId); 
     }
     
@@ -78,11 +78,18 @@ contract GAMMA { // Γ - mv-NFT-mkt
         _transfer(msg.sender, to, tokenId);
     }
     
+    function transferBatch(address[] calldata to, uint256[] calldata tokenId) external {
+        require(to.length == tokenId.length, "!to/tokenId");
+        
+        for (uint256 i = 0; i < to.length; i++) {
+            require(msg.sender == ownerOf[tokenId[i]], "!owner");
+            _transfer(msg.sender, to[i], tokenId[i]);
+        }
+    }
+    
     function transferFrom(address from, address to, uint256 tokenId) external {
         address owner = ownerOf[tokenId];
         require(msg.sender == owner || getApproved[tokenId] == msg.sender || isApprovedForAll[owner][msg.sender], "!owner/spender/operator");
-        getApproved[tokenId] = address(0);
-        ownerOf[tokenId] = to;
         _transfer(from, to, tokenId);
     }
     
