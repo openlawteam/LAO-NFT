@@ -33,10 +33,10 @@ contract GAMMA { // Γ - mv - NFT - mkt - γ
         emit Approval(msg.sender, spender, tokenId); 
     }
     function mint(uint256 ethPrice, string calldata _tokenURI, bool forSale) external { 
-        balanceOf[msg.sender]++;
         totalSupply++;
         require(totalSupply <= GAMMA_MAX, "maxed");
         uint256 tokenId = totalSupply;
+        balanceOf[msg.sender]++;
         ownerOf[tokenId] = msg.sender;
         tokenByIndex[tokenId - 1] = tokenId;
         tokenURI[tokenId] = _tokenURI;
