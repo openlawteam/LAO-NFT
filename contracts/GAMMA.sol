@@ -1,5 +1,5 @@
 pragma solidity 0.5.17;
-contract GAMMA { // Γ - mv-NFT-mkt - γ
+contract GAMMA { // Γ - mv - NFT - mkt - γ
     address payable public dao = 0x057e820D740D5AAaFfa3c6De08C5c98d990dB00d;
     uint256 public constant GAMMA_MAX = 5772156649015328606065120900824024310421;
     uint256 public totalSupply;
@@ -28,8 +28,7 @@ contract GAMMA { // Γ - mv-NFT-mkt - γ
         supportsInterface[0x780e9d63] = true; // ENUMERABLE
     }
     function approve(address spender, uint256 tokenId) external {
-        address owner = ownerOf[tokenId];
-        require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "!owner/operator");
+        require(msg.sender == ownerOf[tokenId] || isApprovedForAll[ownerOf[tokenId]][msg.sender], "!owner/operator");
         getApproved[tokenId] = spender;
         emit Approval(msg.sender, spender, tokenId); 
     }
@@ -40,9 +39,9 @@ contract GAMMA { // Γ - mv-NFT-mkt - γ
         uint256 tokenId = totalSupply;
         ownerOf[tokenId] = msg.sender;
         tokenByIndex[tokenId - 1] = tokenId;
+        tokenURI[tokenId] = _tokenURI;
         sale[tokenId].ethPrice = ethPrice;
         sale[tokenId].forSale = forSale;
-        tokenURI[tokenId] = _tokenURI;
         tokenOfOwnerByIndex[msg.sender][tokenId - 1] = tokenId;
         emit Transfer(address(0), msg.sender, tokenId); 
         emit UpdateSale(ethPrice, tokenId, forSale);
@@ -81,8 +80,7 @@ contract GAMMA { // Γ - mv-NFT-mkt - γ
         }
     }
     function transferFrom(address from, address to, uint256 tokenId) external {
-        address owner = ownerOf[tokenId];
-        require(msg.sender == owner || getApproved[tokenId] == msg.sender || isApprovedForAll[owner][msg.sender], "!owner/spender/operator");
+        require(msg.sender == ownerOf[tokenId] || getApproved[tokenId] == msg.sender || isApprovedForAll[ownerOf[tokenId]][msg.sender], "!owner/spender/operator");
         _transfer(from, to, tokenId);
     }
     function updateDao(address payable _dao) external {
