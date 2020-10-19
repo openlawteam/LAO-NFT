@@ -246,7 +246,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 contract CloneFactory {
-    function createClone(address payable target) internal returns (address payable result) { // eip-1167 proxy pattern adapted for payable lexToken
+    function createClone(address payable target) internal returns (address payable result) { // eip-1167 proxy pattern adapted for payable token
         bytes20 targetBytes = bytes20(target);
         assembly {
             let clone := mload(0x40)
@@ -258,29 +258,18 @@ contract CloneFactory {
     }
 }
 
-interface IERC20Transfer { // brief interface for erc20 token transfer
-    function transfer(address recipient, uint256 value) external returns (bool);
-}
-
-contract LexTokenFactory is CloneFactory {
-    address payable public lexDAO;
-    address public lexDAOtoken;
+contract NFTWrapper is CloneFactory {
     address payable immutable public template;
-    uint256 public userReward;
     string  public details;
     
-    event LaunchLexToken(address indexed lexToken, address indexed manager, address indexed resolver, bool forSale);
-    event UpdateGovernance(address indexed lexDAO, address indexed lexDAOtoken, uint256 indexed userReward, string details);
-    
-    constructor(address payable _lexDAO, address _lexDAOtoken, address payable _template, uint256 _userReward, string memory _details) {
-        lexDAO = _lexDAO;
-        lexDAOtoken = _lexDAOtoken;
+    event LaunchNFTWrap(address indexed nftWrap, address indexed manager, address indexed resolver, bool forSale);
+
+    constructor(address payable _template, string memory _details) {
         template = _template;
-        userReward = _userReward;
         details = _details;
     }
     
-    function launchLexToken(
+    function launchNFTWrap(
         address payable _manager,
         address _resolver,
         uint8 _decimals, 
@@ -294,9 +283,9 @@ contract LexTokenFactory is CloneFactory {
         bool _forSale, 
         bool _transferable
     ) external payable {
-        LexToken lex = LexToken(createClone(template));
+        NFTWrap nftWrap = NFTWrap(createClone(template));
         
-        lex.init(
+        nftWrap.init(
             _manager,
             _resolver,
             _decimals, 
@@ -309,19 +298,7 @@ contract LexTokenFactory is CloneFactory {
             _symbol, 
             _forSale, 
             _transferable);
-        
-        (bool success, ) = lexDAO.call{value: msg.value}("");
-        require(success, "!ethCall");
-        IERC20Transfer(lexDAOtoken).transfer(msg.sender, userReward);
-        emit LaunchLexToken(address(lex), _manager, _resolver, _forSale);
-    }
-    
-    function updateGovernance(address payable _lexDAO, address _lexDAOtoken, uint256 _userReward, string memory _details) external {
-        require(msg.sender == lexDAO, "!lexDAO");
-        lexDAO = _lexDAO;
-        lexDAOtoken = _lexDAOtoken;
-        userReward = _userReward;
-        details = _details;
-        emit UpdateGovernance(_lexDAO, _lexDAOtoken, _userReward, _details);
+            
+        emit LaunchNFTWrap(address(nftWrap), _manager, _resolver, _forSale);
     }
 }
