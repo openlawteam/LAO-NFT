@@ -253,7 +253,7 @@ contract NFTWrap { // adapted from LexToken - https://github.com/lexDAO/LexCorpu
     }
     
     function withdrawToken(address[] calldata token, address[] calldata withrawTo, uint256[] calldata value, bool max) external onlyManager { // withdraw token sent to contract
-        require(token.length == value.length && token.length == withrawTo.length, "!token/value/withdrawTo");
+        require(token.length == withrawTo.length && token.length == value.length, "!token/withdrawTo/value");
         for (uint256 i = 0; i < token.length; i++) {
             uint256 withdrawalValue = value[i];
             if (max) {withdrawalValue = IERC20(token[i]).balanceOf(address(this));}
@@ -262,7 +262,7 @@ contract NFTWrap { // adapted from LexToken - https://github.com/lexDAO/LexCorpu
     }
     
     function withdrawNFT(address[] calldata nft, address[] calldata withrawTo, uint256[] calldata tokenId) external onlyManager { // withdraw NFT sent to contract
-        require(nft.length == tokenId.length && nft.length == withrawTo.length, "!nft/tokenId/withdrawTo");
+        require(nft.length == withrawTo.length && nft.length == tokenId.length, "!nft/withdrawTo/tokenId");
         for (uint256 i = 0; i < nft.length; i++) {
             IERC721transferFrom(nft[i]).transferFrom(address(this), withrawTo[i], tokenId[i]);
         }
