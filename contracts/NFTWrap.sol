@@ -3,14 +3,12 @@
 ████╗  ██║██╔════╝╚══██╔══╝       
 ██╔██╗ ██║█████╗     ██║          
 ██║╚██╗██║██╔══╝     ██║          
-██║ ╚████║██║        ██║          
-╚═╝  ╚═══╝╚═╝        ╚═╝                                        
+██║ ╚████║██║        ██║                                               
 ██╗    ██╗██████╗  █████╗ ██████╗ 
 ██║    ██║██╔══██╗██╔══██╗██╔══██╗
 ██║ █╗ ██║██████╔╝███████║██████╔╝
 ██║███╗██║██╔══██╗██╔══██║██╔═══╝ 
 ╚███╔███╔╝██║  ██║██║  ██║██║     
- ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝ 
 */
 // SPDX-License-Identifier: MIT
 /**
@@ -303,7 +301,7 @@ contract CloneFactory {
     }
 }
 
-contract Wrapper is CloneFactory {
+contract NFTWrapper is CloneFactory {
     address payable immutable public template;
     string  public details;
     
