@@ -3,7 +3,8 @@
 ████╗  ██║██╔════╝╚══██╔══╝       
 ██╔██╗ ██║█████╗     ██║          
 ██║╚██╗██║██╔══╝     ██║          
-██║ ╚████║██║        ██║                                               
+██║ ╚████║██║        ██║
+
 ██╗    ██╗██████╗  █████╗ ██████╗ 
 ██║    ██║██╔══██╗██╔══██╗██╔══██╗
 ██║ █╗ ██║██████╔╝███████║██████╔╝
@@ -37,7 +38,7 @@ interface IERC20 { // brief interface for erc20 token
     function transfer(address to, uint256 value) external returns (bool);
 }
 
-interface IERC721transferFrom {
+interface IERC721transferFrom { // brief interface for erc721 token (nft)
     function transferFrom(address from, address to, uint256 tokenId) external;
 }
 
@@ -106,11 +107,11 @@ contract NFTWrap { // adapted from LexToken - https://github.com/lexDAO/LexCorpu
         uint256 _saleRate, 
         uint256 _saleSupply, 
         uint256 _totalSupplyCap,
-        string memory _name, 
-        string memory _symbol,  
+        string calldata _name, 
+        string calldata _symbol,  
         bool _forSale, 
         bool _transferable
-    ) public {
+    ) external {
         require(!initialized, "initialized"); 
         manager = _manager; 
         resolver = _resolver;
@@ -251,19 +252,19 @@ contract NFTWrap { // adapted from LexToken - https://github.com/lexDAO/LexCorpu
         emit UpdateTransferability(_transferable);
     }
     
-    function withdrawToken(address[] calldata token, address withrawTo, uint256[] calldata value, bool max) external onlyManager { // withdraw token sent to contract
-        require(token.length == value.length, "!token/value");
+    function withdrawToken(address[] calldata token, address[] calldata withrawTo, uint256[] calldata value, bool max) external onlyManager { // withdraw token sent to contract
+        require(token.length == value.length && token.length == withrawTo.length, "!token/value/withdrawTo");
         for (uint256 i = 0; i < token.length; i++) {
             uint256 withdrawalValue = value[i];
             if (max) {withdrawalValue = IERC20(token[i]).balanceOf(address(this));}
-            IERC20(token[i]).transfer(withrawTo, withdrawalValue);
+            IERC20(token[i]).transfer(withrawTo[i], withdrawalValue);
         }
     }
     
-    function withdrawNFT(address[] calldata nft, address withrawTo, uint256[] calldata tokenId) external onlyManager { // withdraw NFT sent to contract
-        require(nft.length == tokenId.length, "!nft/tokenId");
+    function withdrawNFT(address[] calldata nft, address[] calldata withrawTo, uint256[] calldata tokenId) external onlyManager { // withdraw NFT sent to contract
+        require(nft.length == tokenId.length && nft.length == withrawTo.length, "!nft/tokenId/withdrawTo");
         for (uint256 i = 0; i < nft.length; i++) {
-            IERC721transferFrom(nft[i]).transferFrom(address(this), withrawTo, tokenId[i]);
+            IERC721transferFrom(nft[i]).transferFrom(address(this), withrawTo[i], tokenId[i]);
         }
     }
 }
