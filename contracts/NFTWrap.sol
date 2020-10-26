@@ -65,7 +65,7 @@ library SafeMath { // arithmetic wrapper for unit under/overflow check
     }
 }
 
-contract NFTWrap { // adapted from LexToken - https://github.com/lexDAO/LexCorpus/blob/master/contracts/token/lextoken/solidity/LexToken.sol
+contract NFTWrap { // multi NFT wrapper adapted from LexToken - https://github.com/lexDAO/LexCorpus/blob/master/contracts/token/lextoken/solidity/LexToken.sol
     using SafeMath for uint256;
     
     address payable public manager; // account managing token rules & sale - see 'Manager Functions' - updateable by manager
@@ -252,19 +252,19 @@ contract NFTWrap { // adapted from LexToken - https://github.com/lexDAO/LexCorpu
         emit UpdateTransferability(_transferable);
     }
     
+    function withdrawNFT(address[] calldata nft, address[] calldata withrawTo, uint256[] calldata tokenId) external onlyManager { // withdraw NFT sent to contract
+        require(nft.length == withrawTo.length && nft.length == tokenId.length, "!nft/withdrawTo/tokenId");
+        for (uint256 i = 0; i < nft.length; i++) {
+            IERC721transferFrom(nft[i]).transferFrom(address(this), withrawTo[i], tokenId[i]);
+        }
+    }
+    
     function withdrawToken(address[] calldata token, address[] calldata withrawTo, uint256[] calldata value, bool max) external onlyManager { // withdraw token sent to contract
         require(token.length == withrawTo.length && token.length == value.length, "!token/withdrawTo/value");
         for (uint256 i = 0; i < token.length; i++) {
             uint256 withdrawalValue = value[i];
             if (max) {withdrawalValue = IERC20(token[i]).balanceOf(address(this));}
             IERC20(token[i]).transfer(withrawTo[i], withdrawalValue);
-        }
-    }
-    
-    function withdrawNFT(address[] calldata nft, address[] calldata withrawTo, uint256[] calldata tokenId) external onlyManager { // withdraw NFT sent to contract
-        require(nft.length == withrawTo.length && nft.length == tokenId.length, "!nft/withdrawTo/tokenId");
-        for (uint256 i = 0; i < nft.length; i++) {
-            IERC721transferFrom(nft[i]).transferFrom(address(this), withrawTo[i], tokenId[i]);
         }
     }
 }
@@ -306,7 +306,7 @@ contract NFTWrapper is CloneFactory {
     address payable immutable public template;
     string  public details;
     
-    event WrapNFT(address indexed nftwrap, address indexed manager, address indexed resolver, uint256 saleRate, bool forSale);
+    event WrapNFT(address indexed manager, address indexed resolver, address indexed wrap, uint256 saleRate, bool forSale);
     
     constructor(address payable _template, string memory _details) {
         template = _template;
@@ -330,9 +330,9 @@ contract NFTWrapper is CloneFactory {
     ) public {
         require(_nftToWrap.length == _nftToWrapId.length, "!_nftToWrap/_nftToWrapId");
         
-        NFTWrap nftwrap = NFTWrap(createClone(template));
+        NFTWrap wrap = NFTWrap(createClone(template));
 
-        nftwrap.init(
+        wrap.init(
             _manager,
             _resolver,
             _decimals, 
@@ -346,9 +346,9 @@ contract NFTWrapper is CloneFactory {
             _transferable);
         
         for (uint256 i = 0; i < _nftToWrap.length; i++) {
-            IERC721transferFrom(_nftToWrap[i]).transferFrom(msg.sender, address(nftwrap), _nftToWrapId[i]);
+            IERC721transferFrom(_nftToWrap[i]).transferFrom(msg.sender, address(wrap), _nftToWrapId[i]);
         }
         
-        emit WrapNFT(address(nftwrap), _manager, _resolver, _saleRate, _forSale);
+        emit WrapNFT(_manager, _resolver, address(wrap), _saleRate, _forSale);
     }
 }
