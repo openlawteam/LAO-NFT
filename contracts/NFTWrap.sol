@@ -12,10 +12,38 @@
 ╚███╔███╔╝██║  ██║██║  ██║██║     
  ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝ 
 */
-// SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.7.0;
+// SPDX-License-Identifier: MIT
+/**
+MIT License
+Copyright (c) 2020 Openlaw
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+ */
+pragma solidity 0.7.4;
 
-library SafeMath {
+interface IERC20 { // brief interface for erc20 token
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address to, uint256 value) external returns (bool);
+}
+
+interface IERC721transferFrom {
+    function transferFrom(address from, address to, uint256 tokenId) external;
+}
+
+library SafeMath { // arithmetic wrapper for unit under/overflow check
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a + b;
         require(c >= a);
@@ -38,21 +66,14 @@ library SafeMath {
     }
 }
 
-/**
- * @dev Required interface of an ERC721 compliant contract.
- */
-interface IERC721transferFrom {
-    function transferFrom(address from, address to, uint256 tokenId) external;
-}
-
-contract NFTWrap {
+contract NFTWrap { // adapted from LexToken - https://github.com/lexDAO/LexCorpus/blob/master/contracts/token/lextoken/solidity/LexToken.sol
     using SafeMath for uint256;
     
     address payable public manager; // account managing token rules & sale - see 'Manager Functions' - updateable by manager
     address public resolver; // account acting as backup for lost token & arbitration of disputed token transfers - updateable by manager
     uint8   public decimals; // fixed unit scaling factor - default 18 to match ETH
     uint256 public saleRate; // rate of token purchase when sending ETH to contract - e.g., 10 saleRate returns 10 token per 1 ETH - updateable by manager
-    uint256 public totalSupply; // tracks outstanding token mints
+    uint256 public totalSupply; // tracks outstanding token mint - mint updateable by manager
     uint256 public totalSupplyCap; // maximum of token mintable
     bytes32 public DOMAIN_SEPARATOR; // eip-2612 permit() pattern - hash identifies contract
     bytes32 constant public PERMIT_TYPEHASH = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"); // eip-2612 permit() pattern - hash identifies function for signature
@@ -64,8 +85,11 @@ contract NFTWrap {
     bool    public transferable; // transferability of token - does not affect token sale - updateable by manager
     
     event Approval(address indexed owner, address indexed spender, uint256 value);
-    event BalanceResolution(string indexed resolution);
+    event BalanceResolution(string resolution);
     event Transfer(address indexed from, address indexed to, uint256 value);
+    event UpdateGovernance(address indexed manager, address indexed resolver, string details);
+    event UpdateSale(uint256 saleRate, bool forSale);
+    event UpdateTransferability(bool transferable);
     
     mapping(address => mapping(address => uint256)) public allowances;
     mapping(address => uint256) public balanceOf;
@@ -80,31 +104,28 @@ contract NFTWrap {
         address payable _manager,
         address _resolver,
         uint8 _decimals, 
-        uint256 managerSupply, 
+        uint256 _managerSupply,
         uint256 _saleRate, 
-        uint256 saleSupply, 
+        uint256 _saleSupply, 
         uint256 _totalSupplyCap,
-        string memory _details, 
         string memory _name, 
         string memory _symbol,  
         bool _forSale, 
         bool _transferable
-    ) external {
+    ) public {
         require(!initialized, "initialized"); 
-        // token initialization:
         manager = _manager; 
         resolver = _resolver;
         decimals = _decimals; 
         saleRate = _saleRate; 
         totalSupplyCap = _totalSupplyCap; 
-        details = _details; 
         name = _name; 
         symbol = _symbol;  
         forSale = _forSale; 
         initialized = true; 
         transferable = _transferable; 
-        _mint(manager, managerSupply);
-        _mint(address(this), saleSupply);
+        _mint(_manager, _managerSupply);
+        _mint(address(this), _saleSupply);
         // eip-2612 permit() pattern:
         uint256 chainId;
         assembly {chainId := chainid()}
@@ -120,8 +141,7 @@ contract NFTWrap {
         require(forSale, "!forSale");
         (bool success, ) = manager.call{value: msg.value}("");
         require(success, "!ethCall");
-        uint256 value = msg.value.mul(saleRate); 
-        _transfer(address(this), msg.sender, value);
+        _transfer(address(this), msg.sender, msg.value.mul(saleRate));
     } 
     
     function _approve(address owner, address spender, uint256 value) internal {
@@ -134,8 +154,8 @@ contract NFTWrap {
         _approve(msg.sender, spender, value);
         return true;
     }
-
-    function balanceResolution(address from, address to, uint256 value, string memory resolution) external { // resolve disputed or lost balances
+    
+    function balanceResolution(address from, address to, uint256 value, string calldata resolution) external { // resolve disputed or lost balances
         require(msg.sender == resolver, "!resolver"); 
         _transfer(from, to, value); 
         emit BalanceResolution(resolution);
@@ -178,7 +198,7 @@ contract NFTWrap {
         return true;
     }
     
-    function transferBatch(address[] memory to, uint256[] memory value) external {
+    function transferBatch(address[] calldata to, uint256[] calldata value) external {
         require(to.length == value.length, "!to/value");
         require(transferable, "!transferable");
         for (uint256 i = 0; i < to.length; i++) {
@@ -207,27 +227,46 @@ contract NFTWrap {
         _mint(to, value);
     }
     
-    function mintBatch(address[] memory to, uint256[] memory value) external onlyManager {
+    function mintBatch(address[] calldata to, uint256[] calldata value) external onlyManager {
         require(to.length == value.length, "!to/value");
         for (uint256 i = 0; i < to.length; i++) {
             _mint(to[i], value[i]); 
         }
     }
     
-    function updateGovernance(address payable _manager, address _resolver, string memory _details) external onlyManager {
+    function updateGovernance(address payable _manager, address _resolver, string calldata _details) external onlyManager {
         manager = _manager;
         resolver = _resolver;
         details = _details;
+        emit UpdateGovernance(_manager, _resolver, _details);
     }
 
-    function updateSale(uint256 _saleRate, uint256 saleSupply, bool _forSale) external onlyManager {
+    function updateSale(uint256 _saleRate, uint256 _saleSupply, bool _forSale) external onlyManager {
         saleRate = _saleRate;
         forSale = _forSale;
-        _mint(address(this), saleSupply);
+        _mint(address(this), _saleSupply);
+        emit UpdateSale(_saleRate, _forSale);
     }
     
     function updateTransferability(bool _transferable) external onlyManager {
         transferable = _transferable;
+        emit UpdateTransferability(_transferable);
+    }
+    
+    function withdrawToken(address[] calldata token, address withrawTo, uint256[] calldata value, bool max) external onlyManager { // withdraw token sent to contract
+        require(token.length == value.length, "!token/value");
+        for (uint256 i = 0; i < token.length; i++) {
+            uint256 withdrawalValue = value[i];
+            if (max) {withdrawalValue = IERC20(token[i]).balanceOf(address(this));}
+            IERC20(token[i]).transfer(withrawTo, withdrawalValue);
+        }
+    }
+    
+    function withdrawNFT(address[] calldata nft, address withrawTo, uint256[] calldata tokenId) external onlyManager { // withdraw NFT sent to contract
+        require(nft.length == tokenId.length, "!nft/tokenId");
+        for (uint256 i = 0; i < nft.length; i++) {
+            IERC721transferFrom(nft[i]).transferFrom(address(this), withrawTo, tokenId[i]);
+        }
     }
 }
 
@@ -252,7 +291,7 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 contract CloneFactory {
-    function createClone(address payable target) internal returns (address payable result) { // eip-1167 proxy pattern adapted for payable token
+    function createClone(address payable target) internal returns (address payable result) { // eip-1167 proxy pattern adapted for payable contract
         bytes20 targetBytes = bytes20(target);
         assembly {
             let clone := mload(0x40)
@@ -264,50 +303,53 @@ contract CloneFactory {
     }
 }
 
-contract NFTWrapper is CloneFactory {
+contract Wrapper is CloneFactory {
     address payable immutable public template;
     string  public details;
     
-    event LaunchNFTWrap(address indexed nftWrap, address indexed manager, address indexed nftToWrap, address resolver, uint256 nftToWrapId, bool forSale);
-
+    event WrapNFT(address indexed nftwrap, address indexed manager, address indexed resolver, uint256 saleRate, bool forSale);
+    
     constructor(address payable _template, string memory _details) {
         template = _template;
         details = _details;
     }
     
-    function launchNFTWrap(
+    function wrapNFT(
         address payable _manager,
-        address nftToWrap,
+        address[] memory _nftToWrap,
         address _resolver,
         uint8 _decimals, 
-        uint256 managerSupply, 
-        uint256 nftToWrapId,
+        uint256 _managerSupply, 
+        uint256[] memory _nftToWrapId,
         uint256 _saleRate, 
-        uint256 saleSupply, 
+        uint256 _saleSupply, 
         uint256 _totalSupplyCap,
-        string memory _details,
         string memory _name, 
         string memory _symbol, 
         bool _forSale, 
         bool _transferable
-    ) external payable {
-        NFTWrap nftWrap = NFTWrap(createClone(template));
+    ) public {
+        require(_nftToWrap.length == _nftToWrapId.length, "!_nftToWrap/_nftToWrapId");
         
-        nftWrap.init(
+        NFTWrap nftwrap = NFTWrap(createClone(template));
+
+        nftwrap.init(
             _manager,
             _resolver,
             _decimals, 
-            managerSupply, 
+            _managerSupply,
             _saleRate, 
-            saleSupply, 
+            _saleSupply, 
             _totalSupplyCap,
-            _details,
             _name, 
             _symbol, 
             _forSale, 
             _transferable);
         
-        IERC721transferFrom(nftToWrap).transferFrom(msg.sender, address(nftWrap), nftToWrapId);
-        emit LaunchNFTWrap(address(nftWrap), _manager, nftToWrap, _resolver, nftToWrapId, _forSale);
+        for (uint256 i = 0; i < _nftToWrap.length; i++) {
+            IERC721transferFrom(_nftToWrap[i]).transferFrom(msg.sender, address(nftwrap), _nftToWrapId[i]);
+        }
+        
+        emit WrapNFT(address(nftwrap), _manager, _resolver, _saleRate, _forSale);
     }
 }
